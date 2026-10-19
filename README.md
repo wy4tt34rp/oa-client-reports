@@ -1,8 +1,8 @@
 # Ocular Acumen Client Reports
 
-A reusable WordPress plugin that gives approved client users a private Google Analytics 4 page report. Each WordPress installation has its own client name, logo, accent color, property ID, timezone, and Google credential file.
+A reusable WordPress plugin that gives approved client users a private Google Analytics 4 page report. Each WordPress installation has its own client name, logo, accent color, property ID, timezone, and Google service account credentials.
 
-Version 1.0.0. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
+Version 1.0.1. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
 
 ## Client features
 
@@ -43,7 +43,22 @@ This release uses a Google service account. It does not ask for or store anyone'
 
 Use a separate service account/key per client when practical. A public source repository or plugin ZIP must never contain real keys, tokens, or client data.
 
-### Store the key on the server
+### Store the key in wp-config.php
+
+Above the “stop editing” line in the site's wp-config.php, add:
+
+    define('OA_REPORTS_CREDENTIALS_JSON', <<<'OA_GOOGLE_JSON'
+    PASTE THE ENTIRE SERVICE-ACCOUNT JSON HERE
+    OA_GOOGLE_JSON
+    );
+
+Replace the placeholder with the complete contents of the downloaded JSON file, including its opening and closing braces. Keep the single quotes around the first OA_GOOGLE_JSON marker. This PHP nowdoc format preserves the JSON's backslashes and escaped newlines. Put both markers and the pasted JSON at the start of their lines without extra indentation.
+
+No separate credential file is needed with this method. Keep wp-config.php and its backups private, as with the database credentials already stored there. Do not commit the configured file or include it in the plugin ZIP. The plugin reads the constant on the server and does not save the service account key to WordPress options.
+
+Enter the property ID and timezone in **Settings > Client Reports**, then click **Test saved connection**. That screen displays the active credential source and service account email, but never the private key or access token. The frontend receives only report data and its normal WordPress REST nonce.
+
+### Optional: use a separate private key file
 
 Place the JSON key outside **every public document root**, including WordPress and wp-content. Use restrictive permissions that let the PHP service account read it, normally mode 0600 for the key and 0700 for its directory with appropriate ownership.
 
@@ -56,9 +71,9 @@ Add this above the “stop editing” line in wp-config.php, adapting the path t
 
     define('OA_REPORTS_CREDENTIALS_FILE', '/srv/client/private/oa-reports-service-account.json');
 
-Only the file path is added to wp-config.php. The key stays in the separate private JSON file. Do not use the Media Library, plugin directory, or a public symlink to the key. The plugin checks known public roots; the hosting administrator must also account for other virtual hosts or public aliases.
+With this alternative, only the file path is added to wp-config.php. Do not use the Media Library, plugin directory, or a public symlink to the key. The plugin checks known public roots; the hosting administrator must also account for other virtual hosts or public aliases.
 
-Enter the property ID and timezone in **Settings > Client Reports**. That screen displays the service account email, but never the private key or access token. The frontend receives only report data and its normal WordPress REST nonce.
+Use one credential method per site. If both constants are present, OA_REPORTS_CREDENTIALS_JSON takes precedence. An empty, malformed, or invalid JSON constant produces a setup error instead of falling back to the file. Remove the JSON constant to switch back to the file method.
 
 If organization policy prohibits downloadable service-account keys, do not weaken that policy. This release needs a supported host credential arrangement or a future OAuth/workload-identity adapter before use.
 
@@ -97,10 +112,11 @@ ZIP destination:
 /Users/KO-Mac/Library/CloudStorage/Dropbox/KO WordPress Plugins/archived zips
 
     php -d memory_limit=512M tests/integration.php /private/tmp/oa-reports-wp-qa/wordpress/wp-load.php
+    php tests/config-credentials.php /private/tmp/oa-reports-wp-qa/wordpress/wp-load.php valid
     node tests/export.test.cjs
     python3 scripts/package.py
 
-The integration suite refuses to run outside the named disposable test installation. It uses synthetic provider fixtures. Tests, generated keys, and local preview code are excluded from the installable ZIP.
+The integration suite refuses to run outside the named disposable test installation. It uses synthetic provider fixtures. Run the config credential test in separate processes with valid, empty, malformed, wrong-type, oversized, and wrong-fields modes. Tests, generated keys, and local preview code are excluded from the installable ZIP.
 
 See RELEASE-VALIDATION.md for executed checks and remaining live acceptance steps.
 

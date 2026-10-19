@@ -1,4 +1,4 @@
-# Version 1.0.0 validation
+# Version 1.0.1 validation
 
 October 19, 2026.
 
@@ -6,6 +6,8 @@ The installable plugin was built locally. It has not been deployed to a client w
 
 ## Completed checks
 
+- Version 1.0.1 reran the 66 integration checks and added 42 wp-config credential checks across six isolated PHP processes. These cover nowdoc escaping, valid RSA signing, successful administrator connection testing, JSON precedence over a configured file, operation without a key file, and rejection of empty, malformed, oversized, incorrectly typed, and invalid-field credentials. Rendered pages, API responses, and stored options were checked for private credential leakage.
+- PHP source and test syntax checks passed for 1.0.1. The JavaScript and browser checks below were completed for 1.0.0; those assets are unchanged in 1.0.1.
 - PHP syntax checks passed for all source and test PHP files.
 - JavaScript syntax checks passed for report, export utility, and admin scripts.
 - 66 integration checks passed in disposable WordPress 7.1.3 using the official SQLite integration and PHP 8.5.11.

@@ -59,10 +59,26 @@ final class Plugin
         return defined('OA_REPORTS_CREDENTIALS_FILE') && is_string(OA_REPORTS_CREDENTIALS_FILE) ? OA_REPORTS_CREDENTIALS_FILE : '';
     }
 
+    public static function credentialJson(): ?string
+    {
+        if (!defined('OA_REPORTS_CREDENTIALS_JSON')) {
+            return null;
+        }
+        if (!is_string(OA_REPORTS_CREDENTIALS_JSON)) {
+            throw new \RuntimeException('OA_REPORTS_CREDENTIALS_JSON in wp-config.php must contain the service account JSON as a string.');
+        }
+        return OA_REPORTS_CREDENTIALS_JSON;
+    }
+
+    public static function hasCredentials(): bool
+    {
+        return defined('OA_REPORTS_CREDENTIALS_JSON') || self::credentialFile() !== '';
+    }
+
     public static function service(): ReportService
     {
         $settings = self::settings();
-        return new ReportService(new GoogleClient(self::credentialFile(), $settings['property']), $settings);
+        return new ReportService(new GoogleClient(self::credentialFile(), $settings['property'], null, self::credentialJson()), $settings);
     }
 
     public static function menus(): void
@@ -162,7 +178,8 @@ final class Plugin
             <h2>Google connection</h2>
             <?php
             try {
-                $credentials = GoogleClient::credentials(self::credentialFile());
+                $credentials = GoogleClient::credentials(self::credentialFile(), self::credentialJson());
+                echo '<p>Credential source: ' . (defined('OA_REPORTS_CREDENTIALS_JSON') ? '<code>wp-config.php</code> JSON constant' : 'private server file') . '.</p>';
                 echo '<p>Service account: <code>' . esc_html($credentials['client_email']) . '</code></p>';
                 unset($credentials);
             } catch (\RuntimeException $e) {
@@ -170,7 +187,7 @@ final class Plugin
             }
             ?>
             <p>Enable the Google Analytics Data API and give the service account <strong>Viewer</strong> access to this property only.</p>
-            <p>Store its JSON key outside the public website directories. In <code>wp-config.php</code>, define <code>OA_REPORTS_CREDENTIALS_FILE</code> as that file's absolute path. No key is uploaded or stored through this screen.</p>
+            <p>In <code>wp-config.php</code>, define <code>OA_REPORTS_CREDENTIALS_JSON</code> with the complete service account JSON key. See the plugin README for the copy-and-paste format. Alternatively, define <code>OA_REPORTS_CREDENTIALS_FILE</code> as the absolute path to a JSON key outside all public website directories. The JSON constant takes precedence. No key is uploaded or stored through this screen.</p>
             <p><button class="button" id="oa-test-connection" type="button" data-url="<?php echo esc_url(rest_url('oa-reports/v1/test')); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('wp_rest')); ?>">Test saved connection</button> <span id="oa-test-status" role="status" aria-live="polite"></span></p>
             <h2>Client access</h2>
             <p>Assign approved WordPress users the <strong>Client Report Viewer</strong> role in Users. Administrators can also view reports. Existing editors and subscribers do not receive access automatically.</p>
@@ -262,7 +279,7 @@ final class Plugin
             'timezone' => $settings['timezone'],
             'dates' => Dates::previousMonth($settings['timezone']),
             'yesterday' => (new \DateTimeImmutable('yesterday', Dates::timezone($settings['timezone'])))->format('Y-m-d'),
-            'configured' => $settings['property'] !== '' && self::credentialFile() !== '',
+            'configured' => $settings['property'] !== '' && self::hasCredentials(),
         ]);
     }
 
@@ -338,7 +355,7 @@ final class Plugin
     public static function refreshMonth(): void
     {
         $settings = self::settings();
-        if ($settings['property'] === '' || self::credentialFile() === '') {
+        if ($settings['property'] === '' || !self::hasCredentials()) {
             return;
         }
         $day = (int) (new \DateTimeImmutable('now', Dates::timezone($settings['timezone'])))->format('j');

@@ -4,20 +4,42 @@ namespace OcularAcumen\Reports;
 class GoogleClient
 {
     private string $credentialFile;
+    private ?string $credentialJson;
     private string $property;
     private $http;
 
-    public function __construct(string $credentialFile, string $property, ?callable $http = null)
+    public function __construct(string $credentialFile, string $property, ?callable $http = null, ?string $credentialJson = null)
     {
         if (!preg_match('/^[1-9][0-9]{0,19}$/D', $property)) {
             throw new \RuntimeException('Enter the numeric GA4 property ID in Client Reports settings.');
         }
         $this->credentialFile = $credentialFile;
+        $this->credentialJson = $credentialJson;
         $this->property = $property;
         $this->http = $http ?? 'wp_remote_post';
     }
 
-    public static function credentials(string $path): array
+    public static function credentials(string $path, ?string $json = null): array
+    {
+        // An explicitly configured JSON value takes precedence, including invalid values.
+        // Never silently fall back to a different account when configuration is broken.
+        $json = $json ?? self::readCredentialFile($path);
+        if ($json === '' || strlen($json) > 32768) {
+            throw new \RuntimeException('The Google service account JSON must be nonempty and no larger than 32 KB.');
+        }
+        $data = json_decode($json, true);
+        if (!is_array($data) || ($data['type'] ?? '') !== 'service_account'
+            || !is_string($data['client_email'] ?? null)
+            || !filter_var($data['client_email'], FILTER_VALIDATE_EMAIL)
+            || !is_string($data['private_key'] ?? null)
+            || !str_contains($data['private_key'], 'PRIVATE KEY')) {
+            throw new \RuntimeException('The Google credential is not a valid service account JSON key.');
+        }
+        // Never trust token_uri or other outbound URLs supplied in credential JSON.
+        return $data;
+    }
+
+    private static function readCredentialFile(string $path): string
     {
         $real = $path !== '' ? realpath($path) : false;
         if (!$real || !is_file($real) || !is_readable($real) || filesize($real) > 32768) {
@@ -34,15 +56,7 @@ class GoogleClient
                 throw new \RuntimeException('Store the Google credential file outside all public website directories.');
             }
         }
-        $data = json_decode((string) file_get_contents($real), true);
-        if (!is_array($data) || ($data['type'] ?? '') !== 'service_account'
-            || !filter_var($data['client_email'] ?? '', FILTER_VALIDATE_EMAIL)
-            || !is_string($data['private_key'] ?? null)
-            || !str_contains($data['private_key'], 'PRIVATE KEY')) {
-            throw new \RuntimeException('The server credential file is not a valid Google service account key.');
-        }
-        // Never trust token_uri or other outbound URLs supplied in credential JSON.
-        return $data;
+        return (string) file_get_contents($real);
     }
 
     private static function b64(string $input): string
@@ -52,7 +66,7 @@ class GoogleClient
 
     private function token(): string
     {
-        $credentials = self::credentials($this->credentialFile);
+        $credentials = self::credentials($this->credentialFile, $this->credentialJson);
         $key = 'oa_reports_token_' . hash('sha256', $credentials['client_email'] . $credentials['private_key']);
         $cached = get_transient($key);
         if (is_string($cached) && $cached !== '') {
@@ -72,7 +86,7 @@ class GoogleClient
         $unsigned = self::b64('{"alg":"RS256","typ":"JWT"}') . '.' . self::b64(wp_json_encode($claims));
         $signature = '';
         if (!@openssl_sign($unsigned, $signature, $credentials['private_key'], OPENSSL_ALGO_SHA256)) {
-            throw new \RuntimeException('Google authentication could not be signed. Check the server credential file.');
+            throw new \RuntimeException('Google authentication could not be signed. Check the configured service account key.');
         }
         $response = $this->request('https://oauth2.googleapis.com/token', [
             'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
