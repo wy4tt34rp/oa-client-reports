@@ -3,7 +3,7 @@ Contributors: ocularacumen
 Tags: analytics, reports, ga4
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,7 +11,7 @@ Private client-facing Google Analytics reports with date selection and per-site 
 
 == Description ==
 
-Give approved WordPress users GA4 Pages and screens and Traffic acquisition reports with month and quarter pickers, custom dates, daily charts, sortable searchable tables, CSV export, and print layout.
+Give approved WordPress users GA4 Pages & Screens and Traffic acquisition reports with month and quarter pickers, custom dates, daily charts, sortable searchable tables, CSV export, and print layout.
 
 Configure each site's client name, logo, accent, GA4 property, and timezone. Store the Google service account JSON directly in wp-config.php or use a private server file outside the web root. See README.md for setup.
 
@@ -27,6 +27,10 @@ Upload and activate. Open Settings > Client Reports. Complete the service accoun
 Shortcode: [oa_client_reports]
 
 == Changelog ==
+
+= 1.1.1 =
+* Rename the report selector to Select a Report and widen it slightly.
+* Use Pages & Screens consistently in the selector, report title, and CSV report name.
 
 = 1.1.0 =
 * Add Traffic acquisition by session channel group or source / medium with nine metrics.

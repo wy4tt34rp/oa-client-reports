@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Ocular Acumen Client Reports
  * Description: Private GA4 page and traffic acquisition reports with month, quarter, and custom dates, client branding, CSV export, and report-only WordPress access.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Ocular Acumen
  * Author URI: https://ocularacumen.com/
  * Requires at least: 6.4
@@ -13,7 +13,7 @@
  */
 
 defined('ABSPATH') || exit;
-define('OA_REPORTS_VERSION', '1.1.0');
+define('OA_REPORTS_VERSION', '1.1.1');
 define('OA_REPORTS_FILE', __FILE__);
 foreach (['Dates', 'GoogleClient', 'ReportService', 'Renderer', 'Plugin'] as $oa_reports_class) {
     require_once __DIR__ . '/includes/' . $oa_reports_class . '.php';

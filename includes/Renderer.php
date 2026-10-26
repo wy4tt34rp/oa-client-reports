@@ -13,13 +13,13 @@ final class Renderer
                 <div>
                     <?php if ($config['logo']) : ?><img class="oa-client-logo" src="<?php echo esc_url($config['logo']); ?>" alt="<?php echo esc_attr($config['client']); ?>"><?php endif; ?>
                     <p class="oa-client-name"><?php echo esc_html($config['client']); ?></p>
-                    <h2 class="oa-report-title" id="<?php echo esc_attr($id); ?>title">Pages and screens</h2>
-                    <p class="oa-period">Pages and screens</p>
+                    <h2 class="oa-report-title" id="<?php echo esc_attr($id); ?>title">Pages &amp; Screens</h2>
+                    <p class="oa-period">Pages &amp; Screens</p>
                 </div>
                 <div class="oa-export-actions"><button type="button" data-action="csv" disabled>Download CSV</button><button type="button" data-action="print" disabled>Print / Save PDF</button></div>
             </header>
             <form class="oa-date-controls">
-                <label for="<?php echo esc_attr($id); ?>report-type">Report<select id="<?php echo esc_attr($id); ?>report-type" name="reportType"><option value="pages">Pages and screens</option><option value="traffic">Traffic acquisition</option></select></label>
+                <label class="oa-report-type-label" for="<?php echo esc_attr($id); ?>report-type">Select a Report<select id="<?php echo esc_attr($id); ?>report-type" name="reportType"><option value="pages">Pages &amp; Screens</option><option value="traffic">Traffic acquisition</option></select></label>
                 <label class="oa-group-label" hidden for="<?php echo esc_attr($id); ?>group">Group by<select id="<?php echo esc_attr($id); ?>group" name="group"><option value="channel">Channel group</option><option value="sourceMedium">Source / medium</option></select></label>
                 <label for="<?php echo esc_attr($id); ?>preset">Date range<select id="<?php echo esc_attr($id); ?>preset" name="preset"><option value="last-month">Last month</option><option value="month">Choose month</option><option value="last-quarter">Last quarter</option><option value="quarter">Choose quarter</option><option value="custom">Custom dates</option></select></label>
                 <label class="oa-month-label" hidden for="<?php echo esc_attr($id); ?>month">Month<input type="month" id="<?php echo esc_attr($id); ?>month" name="month" value="<?php echo esc_attr(substr($config['dates']['start'], 0, 7)); ?>"></label>
@@ -39,7 +39,7 @@ final class Renderer
                     <details class="oa-daily-details"><summary>View daily values</summary><div class="oa-daily-table"></div></details>
                 </div>
                 <div class="oa-pages-section">
-                    <div class="oa-section-heading"><h3 class="oa-table-title">Pages and screens</h3><label class="oa-search-label" for="<?php echo esc_attr($id); ?>search"><span class="oa-search-caption">Find a page</span><input id="<?php echo esc_attr($id); ?>search" type="search" placeholder="Search page titles"></label></div>
+                    <div class="oa-section-heading"><h3 class="oa-table-title">Pages &amp; Screens</h3><label class="oa-search-label" for="<?php echo esc_attr($id); ?>search"><span class="oa-search-caption">Find a page</span><input id="<?php echo esc_attr($id); ?>search" type="search" placeholder="Search page titles"></label></div>
                     <p class="oa-table-scope">Search filters the table and CSV rows. Summary metrics and the chart cover the full date range.</p>
                     <div class="oa-table-scroll"><table class="oa-pages-table"><thead><tr>
                         <th scope="col" aria-sort="none"><button type="button" data-sort="title">Page title and screen name</button></th>

@@ -19,6 +19,8 @@
     .oa-report .oa-report-footer{font-size:9px}.oa-report .oa-section-heading{margin-bottom:8px}
 }
 
+.oa-date-controls .oa-report-type-label{flex-basis:170px}
+.oa-date-controls .oa-report-type-label select{width:100%}
 .oa-report .oa-quarter-note{flex-basis:100%;font-size:12px;color:var(--oa-muted)}
 .oa-report.oa-traffic .oa-pages-table{min-width:1400px}
 .oa-report.oa-traffic .oa-pages-table th:first-child{width:20%}

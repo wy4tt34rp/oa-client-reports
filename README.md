@@ -2,13 +2,13 @@
 
 A reusable WordPress plugin that gives approved client users private Google Analytics 4 page and Traffic acquisition reports. Each WordPress installation has its own client name, logo, accent color, property ID, timezone, and Google service account credentials.
 
-Version 1.1.0. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
+Version 1.1.1. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
 
 ## Client features
 
 - Open the previous completed month by default.
 - Choose another month, last quarter, a completed calendar quarter/year, or custom dates, up to 366 days through yesterday.
-- Switch between Pages and screens and Traffic acquisition.
+- Use Select a Report to switch between Pages & Screens and Traffic acquisition.
 - Group Traffic acquisition by session default channel group or session source / medium.
 - View sessions, engaged sessions, engagement rate, average engagement time per session, events per session, event count, key events, session key event rate, and total revenue.
 - View page titles, views, active users, views per active user, average engagement time per active user, and all-event counts.

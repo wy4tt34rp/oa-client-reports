@@ -9,7 +9,7 @@
             labels: ['Sessions', 'Engaged sessions', 'Engagement rate', 'Average engagement time per session', 'Events per session', 'Event count', 'Key events', 'Session key event rate', 'Total revenue'],
             summary: ['sessions', 'engagedSessions', 'engagementRate', 'engagementSeconds', 'keyEvents'],
         };
-        return {title: 'Pages and screens', daily: 'views', dailyLabel: 'Views', rowLabel: 'page titles', fields, labels: labels.map(label => label.replace(' (seconds)', '')), summary: fields};
+        return {title: 'Pages & Screens', daily: 'views', dailyLabel: 'Views', rowLabel: 'page titles', fields, labels: labels.map(label => label.replace(' (seconds)', '')), summary: fields};
     }
     function quarterDates(year, quarter) {
         year = Number(year); quarter = Number(quarter);

@@ -1,3 +1,17 @@
+# Version 1.1.1 validation
+
+October 26, 2026.
+
+Presentation-only update: rename the report field to Select a Report, give its control a 170px flex basis while retaining responsive wrapping, and use Pages & Screens for the option and report title/CSV name. Data queries, date controls, credentials, and access rules are unchanged.
+
+- PHP syntax checks passed for the changed renderer and plugin entry point.
+- JavaScript syntax validation passed for the changed report utility.
+- Git whitespace checks passed.
+- Release packaging checks the explicit allowlist, private-key exclusion, ZIP CRC, and source parity.
+- Verify the labels, dropdown width, and both report choices after installation. Site-specific acceptance is recorded in the client handoff.
+
+The broader integration suite below was run for 1.1.0; it was not repeated for this presentation-only patch.
+
 # Version 1.1.0 validation
 
 October 26, 2026.
