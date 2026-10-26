@@ -1,20 +1,23 @@
 # Ocular Acumen Client Reports
 
-A reusable WordPress plugin that gives approved client users a private Google Analytics 4 page report. Each WordPress installation has its own client name, logo, accent color, property ID, timezone, and Google service account credentials.
+A reusable WordPress plugin that gives approved client users private Google Analytics 4 page and Traffic acquisition reports. Each WordPress installation has its own client name, logo, accent color, property ID, timezone, and Google service account credentials.
 
-Version 1.0.1. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
+Version 1.1.0. Requires WordPress 6.4 or later, PHP 8.0 or later, PHP OpenSSL, and outbound HTTPS access to Google's OAuth and Analytics Data API endpoints. Network-wide multisite activation is not supported; activate and configure separately on each site.
 
 ## Client features
 
 - Open the previous completed month by default.
-- Choose another month or custom dates, up to 366 days through yesterday.
+- Choose another month, last quarter, a completed calendar quarter/year, or custom dates, up to 366 days through yesterday.
+- Switch between Pages and screens and Traffic acquisition.
+- Group Traffic acquisition by session default channel group or session source / medium.
+- View sessions, engaged sessions, engagement rate, average engagement time per session, events per session, event count, key events, session key event rate, and total revenue.
 - View page titles, views, active users, views per active user, average engagement time per active user, and all-event counts.
-- Review a daily total-views chart and exact daily values.
-- Search page titles, sort columns, and browse 50 rows per page.
+- Review a daily views or sessions chart and exact daily values for the selected report.
+- Search page titles or traffic sources, sort columns, and browse 50 rows per page.
 - Export every matching page row to CSV, including rows beyond the visible page.
 - Print the report or use the browser's Save as PDF option.
 
-The chart and summary cover the full selected date range. Page-title search filters the table and its CSV rows. The CSV labels its full-period summary and daily data separately. There is no additional tracking script.
+The chart and summary cover the full selected date range. Search filters the table and its CSV rows. The CSV labels its report, grouping, quarter (when applicable), full-period summary, and daily data separately. Rate columns export raw fractions with explicit units; revenue includes the property currency. There is no additional tracking script.
 
 ## Installation
 
@@ -79,17 +82,17 @@ If organization policy prohibits downloadable service-account keys, do not weake
 
 ## Data and refresh behavior
 
-The plugin calls the official GA4 Data API with the analytics.readonly scope. It uses **unifiedScreenName**, matching **Page title and screen name** in Pages and screens. It requests all users and all events for the configured property. There is no separate stream, hostname, or event filter in this release.
+The plugin calls the official GA4 Data API with the analytics.readonly scope. Pages and screens uses **unifiedScreenName**, matching **Page title and screen name**. Traffic acquisition uses **sessionDefaultChannelGroup** or **sessionSourceMedium**, never first-user attribution. Its nine requested metrics are sessions, engagedSessions, engagementRate, userEngagementDuration, eventsPerSession, eventCount, keyEvents, sessionKeyEventRate, and totalRevenue. It requests all users and all events for the configured property. There is no separate stream, hostname, or event filter in this release.
 
-Period totals are requested without a page or date dimension. Active users are never summed across rows or days. Average engagement time uses total engagement duration divided by active users at the corresponding grain. Google-returned views per active user are preserved.
+Period totals are requested without a page or date dimension. Active users are never summed across rows or days. Page-report average engagement time uses total engagement duration divided by active users. Traffic acquisition average engagement time uses total engagement duration divided by sessions. Each calculation uses the corresponding row or full-period grain. Session rates come directly from GA4; monthly or daily rates are not averaged. Revenue preserves refunds and uses the GA4 reporting currency. Google-returned views per active user are preserved.
 
-Three queries retrieve the page table, full-period totals, and daily views. More than 10,000 page rows are paginated, with a 50,000-row safety limit. Larger reports fail explicitly and request a narrower period. Rows with zero views and nonzero other metrics are retained. The daily chart fills omitted zero-view dates only after a successful complete response.
+Three queries retrieve the selected detail table, dimensionless full-period totals, and daily views or sessions. More than 10,000 detail rows are paginated, with a 50,000-row safety limit. Larger reports fail explicitly and request a narrower period. Rows with zero views and nonzero other metrics are retained. The daily chart fills omitted zero-activity dates only after a successful complete response. When daily counts differ from the GA4 period total, both are preserved with a visible notice. Google's session counts can differ across query grains; the plugin does not replace the period total with a daily sum.
 
 The configured timezone must match GA4's returned timezone. A mismatch produces a setup error. Google thresholding, sampling, and other-row aggregation are disclosed when indicated in metadata. GA4 reporting identity and processing can produce differences from the UI; validate a completed month against the UI before client use.
 
 Successful responses are fresh for six hours and retained in WordPress transients for up to 30 days. The latest successfully collected previous calendar month is also retained in a non-autoloaded WordPress option. A failed refresh preserves a matching saved report and labels it stale. This is not a permanent archive of every historical month.
 
-One daily WordPress cron check refreshes the previous completed month from the 2nd through the 8th and records the result in settings. Outside that window it makes no scheduled Google request. Date selection also retrieves data on demand. Use the host's scheduler to run due WordPress cron events for reliable timing. Deactivation removes the scheduled check.
+One daily WordPress cron check refreshes the previous completed month from the 2nd through the 8th and records the result in settings. Outside that window it makes no scheduled Google request. Date and report selection also retrieve data on demand. Traffic acquisition and quarterly selections use the same six-hour cache and are fetched on demand; they do not add a scheduled job. Cache identities isolate report types and groupings. Quarterly presets use calendar quarters in the property timezone and offer completed quarters only; use custom dates for a quarter to date or fiscal period. Use the host's scheduler to run due WordPress cron events for reliable timing. Deactivation removes the scheduled check.
 
 Removing the plugin preserves settings, roles, and cached reports for reinstallation. When permanently retiring it, delete its report page, remove the viewer role from affected users, revoke the Google key/access, and remove stored plugin options. Do not delete credentials shared with another authorized installation.
 
@@ -124,5 +127,6 @@ See RELEASE-VALIDATION.md for executed checks and remaining live acceptance step
 
 - [Google Analytics Data API quickstart](https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart)
 - [Google service account authentication](https://developers.google.com/identity/protocols/oauth2/service-account)
+- [GA4 Traffic acquisition report](https://support.google.com/analytics/answer/12923437)
 - [GA4 API metrics and dimensions](https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema)
 - [WordPress REST authentication](https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/)

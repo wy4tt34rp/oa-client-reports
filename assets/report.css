@@ -18,3 +18,13 @@
     .oa-report .oa-pages-table thead{display:table-header-group}.oa-report .oa-pages-table tr{break-inside:avoid}
     .oa-report .oa-report-footer{font-size:9px}.oa-report .oa-section-heading{margin-bottom:8px}
 }
+
+.oa-report .oa-quarter-note{flex-basis:100%;font-size:12px;color:var(--oa-muted)}
+.oa-report.oa-traffic .oa-pages-table{min-width:1400px}
+.oa-report.oa-traffic .oa-pages-table th:first-child{width:20%}
+.oa-report.oa-traffic .oa-pages-table th:nth-child(5){width:13%}
+@media print{.oa-report.oa-traffic .oa-pages-table{min-width:0;font-size:8px}.oa-report.oa-traffic .oa-pages-table th,.oa-report.oa-traffic .oa-pages-table td{padding:5px 4px}.oa-report.oa-traffic .oa-pages-table thead button{font-size:8px;padding:5px 4px}.oa-report.oa-traffic .oa-pages-table th:first-child{width:19%}}
+
+.oa-report button.oa-primary:hover{background:var(--oa-accent);filter:brightness(.94)}
+.oa-report .oa-pages-table tfoot{background:var(--oa-soft);font-weight:600}
+@media print{.oa-report .oa-pages-table tfoot{display:table-row-group}}

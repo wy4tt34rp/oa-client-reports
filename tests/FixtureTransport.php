@@ -34,13 +34,45 @@ final class FixtureTransport
         return ['response' => ['code' => $status], 'headers' => [], 'body' => json_encode($body)];
     }
 
+    private function trafficReport(array $query, array $report): array
+    {
+        $dimension = $query['dimensions'][0]['name'] ?? null;
+        $metrics = [
+            [100, 90, .9, 3000, 5, 500, 8, .05, 0],
+            [60, 30, .5, 600, 2, 120, 3, .05, -12.5],
+            [40, 10, .25, 400, 2, 80, 1, .025, 25],
+        ];
+        $total = [200, 130, .65, 4000, 3.5, 700, 12, .045, 12.5];
+        $values = static fn($numbers) => array_map(static fn($v) => ['value' => (string) $v], $numbers);
+        if ($dimension === 'date') {
+            $start = new \DateTimeImmutable($query['dateRanges'][0]['startDate']);
+            $days = (int) $start->diff(new \DateTimeImmutable($query['dateRanges'][0]['endDate']))->format('%a') + 1;
+            $report['rows'] = [];
+            for ($i = 0; $i < $days; $i++) {
+                $report['rows'][] = ['dimensionValues' => [['value' => $start->modify('+' . $i . ' days')->format('Ymd')]], 'metricValues' => $values([intdiv(200, $days) + ($i < 200 % $days ? 1 : 0)])];
+            }
+        } elseif ($dimension) {
+            $titles = $dimension === 'sessionSourceMedium' ? ['google / organic', '(direct) / (none)', 'example.test / referral'] : ['Organic Search', 'Direct', 'Referral'];
+            $report['rows'] = [];
+            foreach ($metrics as $i => $numbers) {
+                $report['rows'][] = ['dimensionValues' => [['value' => $titles[$i]]], 'metricValues' => $values($numbers)];
+            }
+        } else {
+            $report['rows'] = [['metricValues' => $values($total)]];
+        }
+        $report['rowCount'] = count($report['rows']);
+        if ($this->mode === 'traffic-invalid-rate' && !$dimension) $report['rows'][0]['metricValues'][2]['value'] = '65';
+        if ($this->mode === 'traffic-missing-currency') unset($report['metadata']['currencyCode']);
+        return $report;
+    }
+
     private function makeReport(array $query): array
     {
         $dimension = $query['dimensions'][0]['name'] ?? null;
         $headers = $query['metrics'];
         $report = [
             'dimensionHeaders' => $query['dimensions'] ?? [], 'metricHeaders' => $headers,
-            'metadata' => ['timeZone' => $this->mode === 'timezone' ? 'UTC' : $this->timezone],
+            'metadata' => ['timeZone' => $this->mode === 'timezone' ? 'UTC' : $this->timezone, 'currencyCode' => 'USD'],
         ];
         if ($this->mode === 'threshold') {
             $report['metadata']['subjectToThresholding'] = true;
@@ -50,6 +82,9 @@ final class FixtureTransport
         }
         if ($this->mode === 'empty') {
             return $report + ['rowCount' => 0];
+        }
+        if (($query['metrics'][0]['name'] ?? '') === 'sessions') {
+            return $this->trafficReport($query, $report);
         }
         if ($this->pageCount > 50000) {
             return $report + ['rowCount' => $this->pageCount, 'rows' => []];

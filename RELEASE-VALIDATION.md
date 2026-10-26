@@ -1,31 +1,26 @@
-# Version 1.0.1 validation
+# Version 1.1.0 validation
 
-October 19, 2026.
+October 26, 2026.
 
-The installable plugin was built locally. It has not been deployed to a client website or connected to a real client Google service account.
+This update adds Traffic acquisition to the existing reusable report screen and adds completed calendar-quarter selection. Client settings and credentials remain outside the package.
 
 ## Completed checks
 
-- Version 1.0.1 reran the 66 integration checks and added 42 wp-config credential checks across six isolated PHP processes. These cover nowdoc escaping, valid RSA signing, successful administrator connection testing, JSON precedence over a configured file, operation without a key file, and rejection of empty, malformed, oversized, incorrectly typed, and invalid-field credentials. Rendered pages, API responses, and stored options were checked for private credential leakage.
-- PHP source and test syntax checks passed for 1.0.1. The JavaScript and browser checks below were completed for 1.0.0; those assets are unchanged in 1.0.1.
-- PHP syntax checks passed for all source and test PHP files.
-- JavaScript syntax checks passed for report, export utility, and admin scripts.
-- 66 integration checks passed in disposable WordPress 7.1.3 using the official SQLite integration and PHP 8.5.11.
-- 20 CSV checks passed in Node, including formula neutralization, quote escaping, Unicode, selected dates, stale status, source warnings, and separation of period totals from searched page rows.
-- Integration coverage includes anonymous and subscriber denial, authorized viewer access, administrator-only connection testing, nonce rejection, no-store response headers, leap dates, year rollover, range limits, RSA JWT verification, fixed token endpoints, pagination above 10,000 rows, duplicate/partial-response rejection, quota failures, failure cooldown, and retention of successful monthly data.
-- Browser review used the actual shortcode inside the disposable WordPress site with synthetic provider responses.
-- The month picker changed the range to August 1 through August 31. The custom date picker changed it to September 12 through September 30. The report values and chart changed with those requests.
-- Page search narrowed the page table to one matching title. A malicious-looking test title rendered as plain text.
-- Desktop and 390-pixel viewport checks showed usable controls, cards, chart, and horizontally scrollable tables.
-- The release ZIP is built from an explicit 13-file allowlist. Tests, test fixtures, generated credentials, Git files, and local preview authentication are excluded. The packaging script checks CRC and byte-for-byte source parity.
+- 88 integration checks passed in disposable WordPress 7.1.3 with the official SQLite integration and PHP 8.5.11. Existing page reports, credentials, permissions, nonce checks, private responses, pagination, cache fallback, and monthly retention remain covered.
+- New coverage checks full-quarter query boundaries, property timezone rollover, session-scoped channel/source attribution, independent full-period totals, engagement duration divided by sessions, negative revenue, reporting currency, invalid rates, empty periods, cache isolation, allowed report/group parameters, and authorized report-only access through REST.
+- 42 wp-config credential checks passed across six isolated PHP processes.
+- 35 JavaScript CSV/date checks passed, including formula neutralization, exact units, quarterly labels, report/group/search provenance, rate fractions, currency, and rejection of invalid quarters.
+- PHP and JavaScript syntax checks and Git whitespace checks passed.
+- Local browser checks confirmed switching between reports, Last quarter, choosing Q4 of the previous year, excluding the unfinished current quarter, source/medium grouping, source search, column sorting, custom dates, and full-period totals that remain separate from searched rows.
+- Desktop and narrow-screen checks confirmed usable controls, responsive summary cards, and contained scrolling for the wide acquisition table. Primary-button hover contrast was corrected.
+- The actual production GA4 property accepted both new session dimensions and all nine requested metrics for a completed quarter. Both groupings returned identical full-period totals. Client-specific evidence is stored in the private client workspace, not this public plugin repository.
+- The daily sessions query differed from the period summary in that real response. The existing reconciliation notice correctly disclosed the difference; neither set of Google-returned values was overwritten.
+- Release packaging verifies an explicit allowlist, absence of private-key material, ZIP CRC, and byte-for-byte source parity.
 
-## Remaining live acceptance
+## Deployment checks
 
-- Install on the intended WordPress site and connect a dedicated Google service account with Viewer access.
-- Verify the actual GA4 timezone and compare a completed month with the Google Analytics UI, including row count, totals, and engagement time.
-- Check access for the intended client account and anonymous visitors through the site's actual cache/CDN.
-- Confirm the host's WordPress cron execution and the first unattended monthly refresh.
-- Test browser CSV delivery and final printed/PDF output in the client's normal browser. CSV contents are covered by automated tests; the in-app browser did not expose a saved download or a reviewable print preview.
-- Minimum PHP 8.0 and WordPress 6.4 compatibility are declared targets; the installed runtime checks used the newer versions listed above. Divi-specific rendering has not been checked on the live client theme.
+Confirm the installed version and load both report types on the intended site after uploading the ZIP. Verify the quarter and a custom range, the source/medium grouping, and the client account's existing access. This document records package validation; client-specific deployment status belongs in the client handoff.
 
-No existing client tracking, live settings, credentials, or site files were changed.
+Browser CSV file delivery and the final printed/PDF document have not been verified in the client's normal browser. CSV content is covered by tests. No scheduled quarterly job is added; report selection fetches the chosen period on demand and uses the existing six-hour cache.
+
+The previous-month default, page report, configured credentials, access capability, and monthly refresh schedule are preserved. Minimum PHP 8.0 and WordPress 6.4 remain declared targets; runtime checks used the newer versions above.

@@ -1,7 +1,9 @@
 (function () {
     'use strict';
     const number = new Intl.NumberFormat(undefined, {maximumFractionDigits: 0});
+    const eventNumber = new Intl.NumberFormat(undefined, {maximumFractionDigits: 2});
     const decimal = new Intl.NumberFormat(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const percent = new Intl.NumberFormat(undefined, {style: 'percent', maximumFractionDigits: 2});
     const dayDate = value => new Date(value + 'T12:00:00Z');
     const dateLabel = value => dayDate(value).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'});
     const duration = seconds => {
@@ -9,16 +11,22 @@
         if (total >= 3600) return Math.floor(total / 3600) + 'h ' + Math.floor((total % 3600) / 60) + 'm';
         return total >= 60 ? Math.floor(total / 60) + 'm ' + (total % 60) + 's' : total + 's';
     };
-    const fields = ['views', 'users', 'viewsPerUser', 'engagementSeconds', 'events'];
-    const labels = ['Views', 'Active users', 'Views per active user', 'Average engagement time per active user', 'Event count'];
-    const format = (key, value) => key === 'engagementSeconds' ? duration(value) : key === 'viewsPerUser' ? decimal.format(value) : number.format(value);
+    const utils = window.OAReportUtils;
+    const format = (key, value, currency) => {
+        if (key === 'engagementSeconds') return duration(value);
+        if (key === 'viewsPerUser' || key === 'eventsPerSession') return decimal.format(value);
+        if (key === 'engagementRate' || key === 'sessionKeyEventRate') return percent.format(value);
+        if (key === 'revenue') return new Intl.NumberFormat(undefined, {style: 'currency', currency, currencyDisplay: 'code'}).format(value);
+        if (key === 'keyEvents') return eventNumber.format(value);
+        return number.format(value);
+    };
     const element = (tag, text, className) => {
         const node = document.createElement(tag);
         if (text !== undefined) node.textContent = text;
         if (className) node.className = className;
         return node;
     };
-    function chart(target, daily) {
+    function chart(target, daily, spec) {
         target.replaceChildren();
         if (!daily.length) return;
         const ns = 'http://www.w3.org/2000/svg';
@@ -32,8 +40,8 @@
         };
         svg.setAttribute('viewBox', '0 0 1000 250');
         svg.setAttribute('role', 'img');
-        svg.setAttribute('aria-label', 'Daily page views from ' + dateLabel(daily[0].date) + ' to ' + dateLabel(daily[daily.length - 1].date) + '. Exact values follow in View daily values.');
-        const max = Math.max(1, ...daily.map(day => day.views));
+        svg.setAttribute('aria-label', 'Daily ' + spec.daily + ' from ' + dateLabel(daily[0].date) + ' to ' + dateLabel(daily[daily.length - 1].date) + '. Exact values follow in View daily values.');
+        const max = Math.max(4, Math.ceil(Math.max(0, ...daily.map(day => day[spec.daily])) / 4) * 4);
         const x = i => daily.length === 1 ? 520 : 64 + (i / (daily.length - 1)) * 910;
         const y = value => 210 - (value / max) * 184;
         for (let i = 0; i < 5; i++) {
@@ -41,12 +49,12 @@
             make('line', {x1: 64, x2: 974, y1: y(value), y2: y(value), class: 'oa-gridline'});
             make('text', {x: 52, y: y(value) + 4, 'text-anchor': 'end', class: 'oa-chart-label'}, number.format(value));
         }
-        make('polyline', {points: daily.map((day, i) => x(i) + ',' + y(day.views)).join(' '), class: 'oa-line', fill: 'none', 'vector-effect': 'non-scaling-stroke'});
+        make('polyline', {points: daily.map((day, i) => x(i) + ',' + y(day[spec.daily])).join(' '), class: 'oa-line', fill: 'none', 'vector-effect': 'non-scaling-stroke'});
         if (daily.length <= 62) {
             daily.forEach((day, i) => {
-                const point = make('circle', {cx: x(i), cy: y(day.views), r: daily.length === 1 ? 5 : 3, class: 'oa-point'});
+                const point = make('circle', {cx: x(i), cy: y(day[spec.daily]), r: daily.length === 1 ? 5 : 3, class: 'oa-point'});
                 const title = document.createElementNS(ns, 'title');
-                title.textContent = dateLabel(day.date) + ': ' + number.format(day.views) + ' views';
+                title.textContent = dateLabel(day.date) + ': ' + number.format(day[spec.daily]) + ' ' + spec.daily;
                 point.append(title);
             });
         }
@@ -65,6 +73,9 @@
         const print = root.querySelector('[data-action=print]');
         const apply = form.querySelector('[type=submit]');
         let report = null;
+        let spec = utils.definition('pages');
+        let pending = null;
+        let requestId = 0;
         let page = 0;
         let sort = 'views';
         let descending = true;
@@ -83,8 +94,8 @@
             const fragment = document.createDocumentFragment();
             if (!shown.length) {
                 const row = element('tr');
-                const cell = element('td', search.value ? 'No page titles match your search.' : 'No page activity was recorded for these dates.');
-                cell.colSpan = 6;
+                const cell = element('td', search.value ? 'No ' + spec.rowLabel + ' match your search.' : 'No activity was recorded for these dates.');
+                cell.colSpan = spec.fields.length + 1;
                 row.append(cell);
                 fragment.append(row);
             }
@@ -93,38 +104,67 @@
                 const title = element('th', row.title);
                 title.scope = 'row';
                 tr.append(title);
-                fields.forEach(key => tr.append(element('td', format(key, row[key]))));
+                spec.fields.forEach(key => tr.append(element('td', format(key, row[key], report.currency))));
                 fragment.append(tr);
             });
             body.replaceChildren(fragment);
             root.querySelector('.oa-row-count').textContent = rows.length
-                ? number.format(page * pageSize + 1) + '–' + number.format(Math.min((page + 1) * pageSize, rows.length)) + ' of ' + number.format(rows.length) + ' page titles' + (search.value ? ' matching “' + search.value + '”' : '')
-                : '0 page titles';
+                ? number.format(page * pageSize + 1) + '–' + number.format(Math.min((page + 1) * pageSize, rows.length)) + ' of ' + number.format(rows.length) + ' ' + spec.rowLabel + (search.value ? ' matching “' + search.value + '”' : '')
+                : '0 ' + spec.rowLabel;
             root.querySelector('[data-action=previous]').disabled = page === 0;
             root.querySelector('[data-action=next]').disabled = (page + 1) * pageSize >= rows.length;
         }
         function render() {
+            spec = utils.definition(report.type);
+            const traffic = report.type === 'traffic';
+            root.classList.toggle('oa-traffic', traffic);
+            root.querySelector('.oa-report-title').textContent = spec.title;
+            root.querySelector('.oa-table-title').textContent = report.dimension;
+            root.querySelector('.oa-chart-title').textContent = spec.dailyLabel + ' over time';
+            root.querySelector('.oa-chart-unit').textContent = 'Daily ' + spec.daily;
+            root.querySelector('.oa-search-caption').textContent = traffic ? 'Find a source' : 'Find a page';
+            search.placeholder = traffic ? 'Search traffic sources' : 'Search page titles';
+            root.querySelector('.oa-page-definitions').hidden = traffic;
+            root.querySelector('.oa-traffic-definitions').hidden = !traffic;
+            const header = root.querySelector('.oa-pages-table thead tr');
+            header.replaceChildren();
+            ['title', ...spec.fields].forEach((key, i) => {
+                const th = element('th'); th.scope = 'col';
+                th.setAttribute('aria-sort', key === sort ? (descending ? 'descending' : 'ascending') : 'none');
+                const button = element('button', i === 0 ? report.dimension : spec.labels[i - 1]);
+                button.type = 'button'; button.dataset.sort = key; th.append(button); header.append(th);
+            });
+            const reportTable = root.querySelector('.oa-pages-table');
+            reportTable.querySelector('tfoot')?.remove();
+            if (traffic) {
+                const foot = element('tfoot');
+                const row = element('tr');
+                const label = element('th', 'Full-period total'); label.scope = 'row'; row.append(label);
+                spec.fields.forEach(key => row.append(element('td', format(key, report.totals[key], report.currency))));
+                foot.append(row); reportTable.append(foot);
+            }
             const metrics = root.querySelector('.oa-metrics');
             metrics.replaceChildren();
-            fields.forEach((key, i) => {
+            spec.summary.forEach(key => {
                 const card = element('div', undefined, 'oa-metric');
-                card.append(element('p', labels[i]), element('strong', format(key, report.totals[key])));
+                card.append(element('p', spec.labels[spec.fields.indexOf(key)]), element('strong', format(key, report.totals[key], report.currency)));
                 metrics.append(card);
             });
-            root.querySelector('.oa-period').textContent = dateLabel(report.start) + ' to ' + dateLabel(report.end);
+            const quarter = utils.quarterLabel(report.start, report.end);
+            root.querySelector('.oa-period').textContent = (quarter ? quarter + ' · ' : '') + dateLabel(report.start) + ' to ' + dateLabel(report.end);
             root.querySelector('.oa-freshness').textContent = 'Google Analytics 4 · ' + report.timezone + ' · Updated ' + new Date(report.fetchedAt * 1000).toLocaleString(undefined, {timeZone: report.timezone});
-            chart(root.querySelector('.oa-chart'), report.daily);
+            chart(root.querySelector('.oa-chart'), report.daily, spec);
             const dailyTable = element('table');
             const head = element('thead');
             const headRow = element('tr');
-            ['Date', 'Views'].forEach(label => {
+            ['Date', spec.dailyLabel].forEach(label => {
                 const th = element('th', label); th.scope = 'col'; headRow.append(th);
             });
             head.append(headRow);
             const dailyBody = element('tbody');
             report.daily.forEach(day => {
                 const row = element('tr');
-                row.append(element('td', dateLabel(day.date)), element('td', number.format(day.views)));
+                row.append(element('td', dateLabel(day.date)), element('td', number.format(day[spec.daily])));
                 dailyBody.append(row);
             });
             dailyTable.append(head, dailyBody);
@@ -149,6 +189,11 @@
                 return;
             }
             results.hidden = true;
+            if (pending) pending.abort();
+            pending = new AbortController();
+            const currentRequest = ++requestId;
+            const reportType = form.elements.reportType.value;
+            const group = form.elements.group.value;
             report = null;
             csv.disabled = print.disabled = apply.disabled = true;
             root.setAttribute('aria-busy', 'true');
@@ -157,22 +202,29 @@
             try {
                 const response = await fetch(config.endpoint, {
                     method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                    signal: pending.signal,
                     headers: {'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce},
-                    body: JSON.stringify({start, end}),
+                    body: JSON.stringify({start, end, reportType, group}),
                 });
                 let data;
                 try { data = await response.json(); } catch (_) { throw new Error('The report could not be loaded. Reload this page and try again.'); }
+                if (currentRequest !== requestId) return;
                 if (!response.ok) throw new Error(data.message || 'The report is temporarily unavailable.');
                 if (!data.totals || !Array.isArray(data.rows) || !Array.isArray(data.daily)) throw new Error('The report response is incomplete.');
                 report = data;
+                sort = utils.definition(report.type).daily;
+                descending = true;
                 page = 0;
                 render();
             } catch (error) {
+                if (currentRequest !== requestId || error.name === 'AbortError') return;
                 status.textContent = error.message || 'The report could not be loaded.';
                 status.classList.add('oa-notice');
             } finally {
-                apply.disabled = false;
-                root.removeAttribute('aria-busy');
+                if (currentRequest === requestId) {
+                    apply.disabled = false;
+                    root.removeAttribute('aria-busy');
+                }
             }
         }
         function monthDates() {
@@ -183,30 +235,69 @@
             form.elements.start.value = value + '-01';
             form.elements.end.value = last > config.yesterday ? config.yesterday : last;
         }
-        form.elements.preset.addEventListener('change', () => {
+        const lastQuarter = config.quarter;
+        const latestYear = Number(lastQuarter.start.slice(0, 4));
+        for (let year = latestYear; year >= 2005; year--) {
+            const option = element('option', String(year)); option.value = String(year); form.elements.year.append(option);
+        }
+        form.elements.quarter.value = String(Math.ceil(Number(lastQuarter.start.slice(5, 7)) / 3));
+        function quarterDates() {
+            const year = form.elements.year.value;
+            [...form.elements.quarter.options].forEach(option => {
+                option.disabled = utils.quarterDates(year, option.value).end > config.yesterday;
+            });
+            if (form.elements.quarter.selectedOptions[0]?.disabled) {
+                form.elements.quarter.value = [...form.elements.quarter.options].filter(option => !option.disabled).pop().value;
+            }
+            const dates = utils.quarterDates(year, form.elements.quarter.value);
+            form.elements.start.value = dates.start;
+            form.elements.end.value = dates.end;
+        }
+        function dateControlVisibility() {
             const choice = form.elements.preset.value;
             root.querySelector('.oa-month-label').hidden = choice !== 'month';
+            root.querySelector('.oa-quarter-label').hidden = choice !== 'quarter';
+            root.querySelector('.oa-year-label').hidden = choice !== 'quarter';
+            root.querySelector('.oa-quarter-note').hidden = !['quarter', 'last-quarter'].includes(choice);
+        }
+        form.elements.preset.addEventListener('change', () => {
+            const choice = form.elements.preset.value;
+            dateControlVisibility();
             if (choice === 'last-month') {
                 form.elements.start.value = config.dates.start;
                 form.elements.end.value = config.dates.end;
             } else if (choice === 'month') monthDates();
+            else if (choice === 'last-quarter') {
+                form.elements.start.value = lastQuarter.start;
+                form.elements.end.value = lastQuarter.end;
+            } else if (choice === 'quarter') quarterDates();
         });
+        form.elements.quarter.addEventListener('change', quarterDates);
+        form.elements.year.addEventListener('change', quarterDates);
+        form.elements.reportType.addEventListener('change', () => {
+            root.querySelector('.oa-group-label').hidden = form.elements.reportType.value !== 'traffic';
+            search.value = '';
+            if (config.configured) load();
+        });
+        form.elements.group.addEventListener('change', () => { search.value = ''; if (config.configured) load(); });
         form.elements.month.min = '2005-01';
         form.elements.month.max = config.yesterday.slice(0, 7);
         form.elements.month.addEventListener('change', monthDates);
         ['start', 'end'].forEach(name => form.elements[name].addEventListener('input', () => {
             form.elements.preset.value = 'custom';
-            root.querySelector('.oa-month-label').hidden = true;
+            dateControlVisibility();
         }));
         form.addEventListener('submit', event => { event.preventDefault(); load(); });
         search.addEventListener('input', () => { page = 0; table(); });
-        root.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
+        root.querySelector('.oa-pages-table thead').addEventListener('click', event => {
+            const button = event.target.closest('[data-sort]');
+            if (!button || !report) return;
             descending = sort === button.dataset.sort ? !descending : button.dataset.sort !== 'title';
             sort = button.dataset.sort;
             root.querySelectorAll('[aria-sort]').forEach(th => th.setAttribute('aria-sort', 'none'));
             button.closest('th').setAttribute('aria-sort', descending ? 'descending' : 'ascending');
             table();
-        }));
+        });
         root.querySelector('[data-action=previous]').addEventListener('click', () => { page--; table(); });
         root.querySelector('[data-action=next]').addEventListener('click', () => { page++; table(); });
         csv.addEventListener('click', () => {
@@ -215,7 +306,8 @@
             const url = URL.createObjectURL(blob);
             const link = element('a');
             link.href = url;
-            link.download = 'website-report-' + report.start + '-to-' + report.end + '.csv';
+            const quarter = utils.quarterLabel(report.start, report.end).toLowerCase().replace(' ', '-');
+            link.download = (report.type === 'traffic' ? 'traffic-acquisition-' : 'website-report-') + (quarter ? quarter + '-' : '') + report.start + '-to-' + report.end + '.csv';
             link.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         });

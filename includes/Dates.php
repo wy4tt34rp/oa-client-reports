@@ -39,6 +39,14 @@ final class Dates
         return ['start' => $start, 'end' => $end];
     }
 
+    public static function previousQuarter(string $timezone, ?\DateTimeImmutable $now = null): array
+    {
+        $now = ($now ?? new \DateTimeImmutable('now', self::timezone($timezone)))->setTimezone(self::timezone($timezone));
+        $month = intdiv((int) $now->format('n') - 1, 3) * 3 + 1;
+        $current = $now->setDate((int) $now->format('Y'), $month, 1)->setTime(0, 0);
+        return ['start' => $current->modify('-3 months')->format('Y-m-d'), 'end' => $current->modify('-1 day')->format('Y-m-d')];
+    }
+
     public static function previousMonth(string $timezone, ?\DateTimeImmutable $now = null): array
     {
         $now = ($now ?? new \DateTimeImmutable('now', self::timezone($timezone)))->setTimezone(self::timezone($timezone));

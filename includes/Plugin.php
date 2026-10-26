@@ -75,10 +75,10 @@ final class Plugin
         return defined('OA_REPORTS_CREDENTIALS_JSON') || self::credentialFile() !== '';
     }
 
-    public static function service(): ReportService
+    public static function service(string $type = 'pages', string $group = 'channel'): ReportService
     {
         $settings = self::settings();
-        return new ReportService(new GoogleClient(self::credentialFile(), $settings['property'], null, self::credentialJson()), $settings);
+        return new ReportService(new GoogleClient(self::credentialFile(), $settings['property'], null, self::credentialJson()), $settings, $type, $group);
     }
 
     public static function menus(): void
@@ -278,6 +278,7 @@ final class Plugin
             'nonce' => wp_create_nonce('wp_rest'),
             'timezone' => $settings['timezone'],
             'dates' => Dates::previousMonth($settings['timezone']),
+            'quarter' => Dates::previousQuarter($settings['timezone']),
             'yesterday' => (new \DateTimeImmutable('yesterday', Dates::timezone($settings['timezone'])))->format('Y-m-d'),
             'configured' => $settings['property'] !== '' && self::hasCredentials(),
         ]);
@@ -300,6 +301,8 @@ final class Plugin
             'methods' => 'POST', 'permission_callback' => [self::class, 'permission'],
             'callback' => [self::class, 'reportResponse'],
             'args' => [
+                'reportType' => ['type' => 'string', 'default' => 'pages', 'enum' => ['pages', 'traffic']],
+                'group' => ['type' => 'string', 'default' => 'channel', 'enum' => ['channel', 'sourceMedium']],
                 'start' => ['required' => true, 'type' => 'string', 'validate_callback' => static fn($v) => is_string($v) && preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $v)],
                 'end' => ['required' => true, 'type' => 'string', 'validate_callback' => static fn($v) => is_string($v) && preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $v)],
             ],
@@ -336,7 +339,7 @@ final class Plugin
     public static function reportResponse($request)
     {
         try {
-            return rest_ensure_response(self::service()->report($request['start'], $request['end']));
+            return rest_ensure_response(self::service($request['reportType'] ?? 'pages', $request['group'] ?? 'channel')->report($request['start'], $request['end']));
         } catch (\Throwable $e) {
             return new \WP_Error('oa_reports_unavailable', self::safeError($e), ['status' => $e instanceof \InvalidArgumentException ? 400 : 502]);
         }
